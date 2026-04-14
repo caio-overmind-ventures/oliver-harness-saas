@@ -27,6 +27,9 @@ import type { Tool } from "../core/defineTool";
 import type { ToolContext } from "../core/context";
 import type { Agent } from "./createAgent";
 import { wrapError } from "../core/errors";
+import { hashInput } from "../audit/hash";
+import { newTraceId, type AuditLogger } from "../audit/logger";
+import { runVerify } from "../audit/verify";
 
 export interface AgentToolsConfig<TContextExt> {
   /**
@@ -56,7 +59,7 @@ export function buildAgentTools<TContextExt>(
   const out: Record<string, any> = {};
 
   for (const oliverTool of agent.tools) {
-    out[oliverTool.name] = wrapAsAISDKTool(oliverTool, ctx);
+    out[oliverTool.name] = wrapAsAISDKTool(oliverTool, ctx, agent._audit);
   }
 
   return out;
@@ -65,35 +68,112 @@ export function buildAgentTools<TContextExt>(
 function wrapAsAISDKTool<TContextExt>(
   oliverTool: Tool<any, any, TContextExt>,
   ctx: ToolContext<TContextExt>,
+  audit: AuditLogger | undefined,
 ) {
   return aiTool({
     description: oliverTool.description,
     inputSchema: zodSchema(oliverTool.input),
     execute: async (rawInput: unknown) => {
+      const traceId = newTraceId();
+      const startedAt = Date.now();
+
+      let parsed: unknown;
       try {
-        const parsed = oliverTool.input.parse(rawInput);
-
-        // HITL path (Phase 4 will replace this with state machine + persistence).
-        // For v0 Phase 2 we return a clear message the LLM understands so the
-        // overall shape is right from day one.
-        if (oliverTool.requiresApproval) {
-          return {
-            status: "awaiting_approval",
-            toolName: oliverTool.name,
-            input: parsed,
-            message: `⏸️ Awaiting human approval for "${oliverTool.name}". Do not proceed until the user confirms.`,
-          };
-        }
-
-        const result = await oliverTool.execute({ input: parsed, ctx });
-        return { status: "ok", data: result };
+        parsed = oliverTool.input.parse(rawInput);
       } catch (err) {
         const wrapped = wrapError(oliverTool.name, err);
-        // Return the error as tool output so the LLM can read and react.
+        return { status: "error", error: wrapped.toJSON() };
+      }
+
+      const inputHash = hashInput(parsed);
+
+      // HITL path (Phase 4b replaces this stub with oliver.pending_tools
+      // state machine + re-invocation guard). For now, just record
+      // pending_approval in audit and return the awaiting message.
+      if (oliverTool.requiresApproval) {
+        void audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: oliverTool.name,
+          source: "agent",
+          status: "pending_approval",
+          inputHash,
+          input: parsed,
+        });
         return {
-          status: "error",
-          error: wrapped.toJSON(),
+          status: "awaiting_approval",
+          toolName: oliverTool.name,
+          input: parsed,
+          message: `⏸️ Awaiting human approval for "${oliverTool.name}". Do not proceed until the user confirms.`,
         };
+      }
+
+      // Audit: invoked
+      void audit?.record({
+        traceId,
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        toolName: oliverTool.name,
+        source: "agent",
+        status: "invoked",
+        inputHash,
+        input: parsed,
+      });
+
+      try {
+        const result = await oliverTool.execute({ input: parsed, ctx });
+        const latencyMs = Date.now() - startedAt;
+
+        void audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: oliverTool.name,
+          source: "agent",
+          status: "succeeded",
+          inputHash,
+          input: parsed,
+          output: result,
+          latencyMs,
+        });
+
+        if (oliverTool.verify) {
+          const verifyResult = await runVerify(() =>
+            oliverTool.verify!({ input: parsed, result, ctx }),
+          );
+          void audit?.record({
+            traceId,
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+            toolName: oliverTool.name,
+            source: "agent",
+            status: verifyResult.outcome,
+            inputHash,
+            errorMessage: verifyResult.error,
+          });
+        }
+
+        return { status: "ok", data: result };
+      } catch (err) {
+        const latencyMs = Date.now() - startedAt;
+        const wrapped = wrapError(oliverTool.name, err);
+
+        void audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: oliverTool.name,
+          source: "agent",
+          status: "failed",
+          inputHash,
+          input: parsed,
+          latencyMs,
+          errorMessage: wrapped.message,
+          errorCode: wrapped.code,
+        });
+
+        return { status: "error", error: wrapped.toJSON() };
       }
     },
   });

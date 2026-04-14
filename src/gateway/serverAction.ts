@@ -38,6 +38,9 @@ import type { z } from "zod";
 import type { Tool } from "../core/defineTool";
 import type { Agent } from "./createAgent";
 import { ToolError, wrapError } from "../core/errors";
+import { hashInput } from "../audit/hash";
+import { newTraceId } from "../audit/logger";
+import { runVerify } from "../audit/verify";
 
 export type ServerActionResult<TOutput> =
   | { ok: true; data: TOutput }
@@ -71,29 +74,104 @@ export function makeServerAction<
   tool: Tool<TInput, TOutput, TContextExt>,
 ): ServerActionFn<TInput, TOutput, TContextExt> {
   return async (rawInput, ctxOverride) => {
+    const traceId = newTraceId();
+    const startedAt = Date.now();
+
+    // Input validation happens BEFORE context resolution so we don't pay
+    // the session/DB lookup cost for obviously-bad requests. But this
+    // means audit doesn't have orgId/userId yet — we skip audit on pure
+    // validation failures (they never touched business state).
+    let parsed: z.infer<TInput>;
     try {
-      // Validate input through the Zod schema. Throws ZodError on bad input.
-      const parsed = tool.input.parse(rawInput) as z.infer<TInput>;
+      parsed = tool.input.parse(rawInput) as z.infer<TInput>;
+    } catch (err) {
+      const wrapped = wrapError(tool.name, err);
+      return { ok: false, error: wrapped.toJSON() };
+    }
 
-      // Resolve full context. Builder's resolver sees the ctxOverride so
-      // it can derive dependent fields (e.g., orgId from slug).
+    const inputHash = hashInput(parsed);
+
+    let ctx;
+    try {
       const resolved = await agent._resolveServerActionContext(ctxOverride);
-
-      // Shallow-merge the caller's override on top of the resolved ctx
-      // (resolver-set fields can still be overridden by caller if both
-      // set the same key). Safety net: force source="ui".
-      const ctx = {
+      ctx = {
         ...resolved,
         ...(ctxOverride ?? {}),
         source: "ui" as const,
       };
+    } catch (err) {
+      // Auth/resolution failures: no business state touched, no audit row.
+      const wrapped =
+        err instanceof ToolError ? err : wrapError(tool.name, err);
+      return { ok: false, error: wrapped.toJSON() };
+    }
 
+    // Audit: invoked (fire-and-forget; logger never throws).
+    void agent._audit?.record({
+      traceId,
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      toolName: tool.name,
+      source: "ui",
+      status: "invoked",
+      inputHash,
+      input: parsed,
+    });
+
+    try {
       const output = await tool.execute({ input: parsed, ctx });
+      const latencyMs = Date.now() - startedAt;
+
+      void agent._audit?.record({
+        traceId,
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        toolName: tool.name,
+        source: "ui",
+        status: "succeeded",
+        inputHash,
+        input: parsed,
+        output,
+        latencyMs,
+      });
+
+      // Verify hook with 5s timeout (critical guard #3).
+      if (tool.verify) {
+        const verifyResult = await runVerify(() =>
+          tool.verify!({ input: parsed, result: output, ctx }),
+        );
+        void agent._audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: tool.name,
+          source: "ui",
+          status: verifyResult.outcome,
+          inputHash,
+          errorMessage: verifyResult.error,
+        });
+      }
 
       return { ok: true, data: output };
     } catch (err) {
+      const latencyMs = Date.now() - startedAt;
       const wrapped =
         err instanceof ToolError ? err : wrapError(tool.name, err);
+
+      void agent._audit?.record({
+        traceId,
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        toolName: tool.name,
+        source: "ui",
+        status: "failed",
+        inputHash,
+        input: parsed,
+        latencyMs,
+        errorMessage: wrapped.message,
+        errorCode: wrapped.code,
+      });
+
       return { ok: false, error: wrapped.toJSON() };
     }
   };

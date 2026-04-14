@@ -26,6 +26,11 @@ import {
   type AssembleSessionInput,
   type SessionBundle,
 } from "../context/assembly";
+import {
+  AuditLogger,
+  type DrizzleDbLike,
+} from "../audit/logger";
+import type { OnAuditFailure } from "../audit/types";
 
 export interface AgentConfig<TContextExt> {
   /**
@@ -44,6 +49,29 @@ export interface AgentConfig<TContextExt> {
    * `agent.assembleSession(...)` throws if called without instructions.
    */
   readonly instructions?: AssembledInstructions;
+
+  /**
+   * Drizzle database handle. Oliver uses it to write audit log entries and
+   * (Phase 4b) to persist the HITL state machine into oliver.pending_tools.
+   *
+   * Typed structurally (`DrizzleDbLike`) so Oliver doesn't depend on a
+   * specific `@repo/database` export — pass whichever drizzle instance
+   * your app already has.
+   *
+   * Required whenever you use tools that are marked requiresApproval, or
+   * whenever you want audit log entries to be persisted. Oliver creates
+   * no tables at runtime — run the provided schema migrations yourself.
+   */
+  readonly db?: DrizzleDbLike;
+
+  /**
+   * Hook invoked when a write to oliver.audit_log fails. Default logs to
+   * console.error. Override to forward to Sentry / Datadog / etc.
+   *
+   * The handler is intentionally NOT allowed to roll back the tool call
+   * itself — losing business state to "save" audit state would be worse.
+   */
+  readonly onAuditFailure?: OnAuditFailure;
 
   /**
    * Resolves the full tool context for a **server action** invocation.
@@ -111,6 +139,9 @@ export interface Agent<TContextExt> {
 
   /** Internal: instructions snapshot, used by assembleSession. */
   _instructions?: AssembledInstructions;
+
+  /** Internal: audit logger. No-op if no db configured. */
+  _audit?: AuditLogger;
 }
 
 /**
@@ -131,6 +162,10 @@ export function createAgent<TContextExt = Record<string, never>>(
     toolsByName.set(tool.name, tool);
   }
 
+  const audit = config.db
+    ? new AuditLogger(config.db, config.onAuditFailure)
+    : undefined;
+
   const agent: Agent<TContextExt> = {
     tools: config.tools,
     getTool(name) {
@@ -147,6 +182,7 @@ export function createAgent<TContextExt = Record<string, never>>(
     },
     _resolveServerActionContext: config.resolveServerActionContext,
     _instructions: config.instructions,
+    _audit: audit,
   };
 
   return agent;

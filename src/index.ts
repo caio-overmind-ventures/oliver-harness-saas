@@ -38,7 +38,14 @@ export type {
   SessionBundle,
 } from "./context/assembly";
 
-// Approval, audit — exported as they're built (Phase 4+)
+// Audit (invocation log + verify hook)
+export { AuditLogger, newTraceId } from "./audit/logger";
+export type { DrizzleDbLike } from "./audit/logger";
+export { hashInput } from "./audit/hash";
+export type { AuditEvent, AuditStatus, OnAuditFailure } from "./audit/types";
+export type { VerifyOutcome, VerifyResult } from "./audit/verify";
+
+// Approval — next (Phase 4b)
 
 // Database schema (Oliver lives in its own `oliver` Postgres schema).
 // Builder references these to include Oliver's tables in their Drizzle
