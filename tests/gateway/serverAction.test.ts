@@ -139,6 +139,63 @@ describe("serverAction channel", () => {
     }
   });
 
+  it("accepts ctxOverride and shallow-merges into ctx (caller-known context wins)", async () => {
+    type CtxExt = { db: { get: (id: string) => string }; slug: string };
+
+    const probe = defineTool<z.ZodObject<{}>, { slug: string; orgId: string }, CtxExt>({
+      name: "probe",
+      description: "Echo slug + orgId from ctx",
+      input: z.object({}),
+      execute: async ({ ctx }) => ({ slug: ctx.slug, orgId: ctx.orgId }),
+    });
+
+    const agent = createAgent<CtxExt>({
+      tools: [probe],
+      // Server-resolved ctx doesn't know slug; caller provides it via override.
+      resolveServerActionContext: async () => ({
+        orgId: "org_test",
+        userId: "usr_test",
+        source: "ui",
+        db: { get: (id: string) => `r-${id}` },
+        slug: "unknown",
+      }),
+    });
+
+    const action = agent.serverAction(probe);
+    const result = await action({}, { slug: "geoia" });
+
+    expect(result).toEqual({
+      ok: true,
+      data: { slug: "geoia", orgId: "org_test" },
+    });
+  });
+
+  it("works without ctxOverride (optional arg)", async () => {
+    type CtxExt = { db: { get: (id: string) => string }; slug: string };
+
+    const probe = defineTool<z.ZodObject<{}>, { slug: string }, CtxExt>({
+      name: "probe2",
+      description: "Echo slug from ctx",
+      input: z.object({}),
+      execute: async ({ ctx }) => ({ slug: ctx.slug }),
+    });
+
+    const agent = createAgent<CtxExt>({
+      tools: [probe],
+      resolveServerActionContext: async () => ({
+        orgId: "org_test",
+        userId: "usr_test",
+        source: "ui",
+        db: { get: (id: string) => `r-${id}` },
+        slug: "from-server",
+      }),
+    });
+
+    // No 2nd arg — resolver's slug is used.
+    const result = await agent.serverAction(probe)({});
+    expect(result).toEqual({ ok: true, data: { slug: "from-server" } });
+  });
+
   it("invokes resolveServerActionContext per call", async () => {
     const resolver = vi.fn(async () => makeCtx());
     const noop = defineTool<z.ZodObject<{}>, string, TestCtxExt>({

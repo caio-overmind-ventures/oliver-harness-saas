@@ -36,10 +36,16 @@ export interface AgentConfig<TContextExt> {
    * Next.js `headers()` / `auth.api.getSession()` / session cookies to figure
    * out who the user is.
    *
-   * Must return `source: "ui"` to indicate this path (the harness trusts
-   * the caller here).
+   * Receives the optional `ctxOverride` the caller passed (URL params like
+   * `slug`, `workspaceId`, etc.) so the resolver can use them — for
+   * example, to look up `orgId` from a slug.
+   *
+   * Must return `source: "ui"` — the harness enforces this as a safety net
+   * even if the resolver forgets to set it.
    */
-  resolveServerActionContext: () => Promise<ToolContext<TContextExt>>;
+  resolveServerActionContext: (
+    ctxOverride?: Partial<TContextExt>,
+  ) => Promise<ToolContext<TContextExt>>;
 }
 
 export interface Agent<TContextExt> {
@@ -52,10 +58,14 @@ export interface Agent<TContextExt> {
   /**
    * Wrap a tool as a Next.js server action. Builder places the result
    * inside a file with `"use server"` at the top (Next.js constraint).
+   *
+   * The resulting function accepts an optional `ctxOverride` arg for
+   * caller-known context (e.g., URL params):
+   *   await createCustomerAction({ name }, { slug: params.slug });
    */
   serverAction<TInput extends z.ZodTypeAny, TOutput>(
     tool: Tool<TInput, TOutput, TContextExt>,
-  ): ServerActionFn<TInput, TOutput>;
+  ): ServerActionFn<TInput, TOutput, TContextExt>;
 
   /**
    * Build the Vercel AI SDK tool record for a session. Called once per
@@ -69,7 +79,9 @@ export interface Agent<TContextExt> {
    * channel adapters can invoke the builder-provided resolver.
    * Not intended for direct use by builders.
    */
-  _resolveServerActionContext: () => Promise<ToolContext<TContextExt>>;
+  _resolveServerActionContext: (
+    ctxOverride?: Partial<TContextExt>,
+  ) => Promise<ToolContext<TContextExt>>;
 }
 
 /**
