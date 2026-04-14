@@ -1,29 +1,37 @@
 /**
  * Oliver's database schema.
  *
- * These tables are owned by the harness, not the builder's app. The builder
- * includes them in their Drizzle config so migrations are generated alongside
- * their own schema.
+ * All Oliver tables live in a dedicated Postgres schema named `oliver`.
+ * This isolates the harness from the builder's app schema — no name
+ * collisions, clean `SHOW TABLES`, easy to drop/rename during spin-off.
  *
- * v0 tables:
- * - harness_pending_tools — HITL state machine (requiresApproval flow)
- * - harness_audit_log — invocation log + verification results
+ * v0 tables (in the `oliver` schema):
+ *   oliver.pending_tools — HITL state machine (requiresApproval flow)
+ *   oliver.audit_log     — invocation log + verification results
  *
  * v0.1+ tables (not yet):
- * - harness_user_profile (dialectic user modeling, Hermes-style)
+ *   oliver.user_profile (dialectic user modeling, Hermes-style)
  */
 
 import {
   index,
   jsonb,
   numeric,
-  pgTable,
+  pgSchema,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
 
+/**
+ * Oliver's dedicated Postgres schema. Separate from `public` (where the
+ * builder's own tables live). Still in the same database — preserves
+ * cross-schema transactional atomicity (business op + audit write in
+ * one commit).
+ */
+export const oliverSchema = pgSchema("oliver");
+
 // ============================================================
-// harness_pending_tools — HITL state machine
+// oliver.pending_tools — HITL state machine
 // ============================================================
 //
 // Lifecycle:
@@ -44,8 +52,8 @@ import {
 // subsequent calls return "still awaiting approval" instead of creating a
 // second pending entry.
 
-export const harnessPendingTools = pgTable(
-  "harness_pending_tools",
+export const pendingTools = oliverSchema.table(
+  "pending_tools",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
@@ -76,14 +84,14 @@ export const harnessPendingTools = pgTable(
   },
   (t) => ({
     // Re-invocation guard lookup: find pending entries by tool+input hash
-    pendingLookupIdx: index("harness_pending_tools_lookup_idx").on(
+    pendingLookupIdx: index("pending_tools_lookup_idx").on(
       t.orgId,
       t.toolName,
       t.inputHash,
       t.status,
     ),
     // Context assembly: load pending entries for an org at session start
-    orgStatusIdx: index("harness_pending_tools_org_status_idx").on(
+    orgStatusIdx: index("pending_tools_org_status_idx").on(
       t.orgId,
       t.status,
     ),
@@ -91,7 +99,7 @@ export const harnessPendingTools = pgTable(
 );
 
 // ============================================================
-// harness_audit_log — invocation + verification log
+// oliver.audit_log — invocation + verification log
 // ============================================================
 //
 // Every tool invocation is recorded here. Not just writes — reads too, so
@@ -102,8 +110,8 @@ export const harnessPendingTools = pgTable(
 // - Approval events (when HITL was involved)
 // - Errors (when execution failed)
 
-export const harnessAuditLog = pgTable(
-  "harness_audit_log",
+export const auditLog = oliverSchema.table(
+  "audit_log",
   {
     id: text("id").primaryKey(),
     orgId: text("org_id").notNull(),
@@ -134,11 +142,14 @@ export const harnessAuditLog = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => ({
-    orgTimeIdx: index("harness_audit_log_org_time_idx").on(
-      t.orgId,
-      t.createdAt,
-    ),
-    traceIdx: index("harness_audit_log_trace_idx").on(t.traceId),
-    toolIdx: index("harness_audit_log_tool_idx").on(t.orgId, t.toolName),
+    orgTimeIdx: index("audit_log_org_time_idx").on(t.orgId, t.createdAt),
+    traceIdx: index("audit_log_trace_idx").on(t.traceId),
+    toolIdx: index("audit_log_tool_idx").on(t.orgId, t.toolName),
   }),
 );
+
+// ============================================================
+// Legacy exports (keep until all consumers migrate)
+// ============================================================
+// Nothing else references these yet — safe to remove in a follow-up
+// commit once the refactor lands.

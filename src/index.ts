@@ -40,10 +40,13 @@ export type {
 
 // Approval, audit — exported as they're built (Phase 4+)
 
-// Database schema (builder includes in their Drizzle config)
+// Database schema (Oliver lives in its own `oliver` Postgres schema).
+// Builder references these to include Oliver's tables in their Drizzle
+// migration setup.
 export {
-  harnessPendingTools,
-  harnessAuditLog,
+  oliverSchema,
+  pendingTools,
+  auditLog,
 } from "./db/schema";
 
 export { generateId } from "./db/ids";
