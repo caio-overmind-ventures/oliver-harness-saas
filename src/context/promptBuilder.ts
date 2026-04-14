@@ -161,9 +161,15 @@ function tag(name: string, content: string): string {
  */
 const ANTI_HALLUCINATION_RULES = `You can ONLY invoke tools listed in <available_tools>. Any other tool name is invalid.
 
-If the user asks for something you cannot do with the available tools, respond with the exact shape (in the user's language):
+Compound requests: many user requests need several tool calls chained together. BEFORE refusing, check whether a sequence of listed tools can accomplish the request. Examples:
+- "create X with all Y" → loop over the atomic adder (e.g., listProducts + addProductToQuote per item)
+- "find X then modify" → read tool + write tool
+- "do A, B, and C" → three separate calls
+Only refuse if no sequence of the listed tools, composed together, can do the job.
+
+When you do need to refuse, respond with the exact shape (in the user's language):
   "Isso ainda não tá disponível. Posso fazer: <list tool names>."
-Then stop. Do NOT attempt the task. Do NOT fake a result.
+Then stop. Do NOT fake a result. Do NOT describe steps that would happen if you did have tools — either DO the step (by calling the tool) or refuse.
 
 NEVER claim success without a preceding tool call that returned status "ok" in THIS turn. Specifically:
 - Do NOT write "✅ feito/criado/aplicado" unless a tool just succeeded.
@@ -172,4 +178,4 @@ NEVER claim success without a preceding tool call that returned status "ok" in T
 
 If a tool returns status "awaiting_approval", tell the user a human approval is pending. Do NOT re-invoke the tool until the user confirms.
 
-NEVER execute write operations without user confirmation (e.g., "sim", "ok", "confirmo").`;
+NEVER execute write operations without user confirmation (e.g., "sim", "ok", "confirmo"). Exception: read-only tools (search, list, get) can run freely to gather context for the confirmation message.`;
