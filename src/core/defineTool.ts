@@ -72,6 +72,36 @@ export interface Tool<
   }) => Promise<{ before: unknown; after: unknown }>;
 
   /**
+   * Optional. Returns a resource key to scope concurrency. Calls whose
+   * key matches (same tool OR across tools — the key space is global) are
+   * serialized: a second caller waits for the first's `execute()` to
+   * finish before running its own. Different keys stay fully parallel.
+   *
+   * Return `undefined` (or omit the field) to let the tool run with no
+   * serialization — the default, appropriate for anything that doesn't
+   * read-then-write shared state.
+   *
+   * Examples:
+   *   // One applyDiscount per quote at a time:
+   *   concurrencyKey: ({ input }) => `quote:${input.quoteId}`
+   *
+   *   // Singleton tool — only one call ever in flight:
+   *   concurrencyKey: () => "singleton"
+   *
+   * The lock protects `execute()` only. Precondition and previewChange
+   * run outside the lock — they are expected to be read-only.
+   *
+   * Scope is process-level. In serverless, each request is its own
+   * process; this mutex catches parallel tool calls within a single
+   * agent turn. Multi-instance deployments targeting shared state need
+   * DB-level advisory locks (v0.1).
+   */
+  concurrencyKey?: (params: {
+    input: z.infer<TInput>;
+    ctx: ToolContext<TContextExt>;
+  }) => string | undefined;
+
+  /**
    * Optional. Domain-invariant check that runs BEFORE anything else in the
    * tool lifecycle. Throw ToolError to block the call.
    *

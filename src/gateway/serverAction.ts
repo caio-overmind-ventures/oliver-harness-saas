@@ -41,6 +41,7 @@ import { ToolError, wrapError } from "../core/errors";
 import { hashInput } from "../audit/hash";
 import { newTraceId } from "../audit/logger";
 import { runVerify } from "../audit/verify";
+import { withLock } from "../concurrency/mutex";
 
 export type ServerActionResult<TOutput> =
   | { ok: true; data: TOutput }
@@ -131,6 +132,31 @@ export function makeServerAction<
       }
     }
 
+    // Concurrency key (optional). Two UI button clicks racing on the
+    // same resource must serialize — same mutex the agent channel uses.
+    let lockKey: string | undefined;
+    if (tool.concurrencyKey) {
+      try {
+        lockKey = tool.concurrencyKey({ input: parsed, ctx });
+      } catch (err) {
+        const wrapped =
+          err instanceof ToolError ? err : wrapError(tool.name, err);
+        void agent._audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: tool.name,
+          source: "ui",
+          status: "failed",
+          inputHash,
+          input: parsed,
+          errorMessage: wrapped.message,
+          errorCode: wrapped.code,
+        });
+        return { ok: false, error: wrapped.toJSON() };
+      }
+    }
+
     // Audit: invoked (fire-and-forget; logger never throws).
     void agent._audit?.record({
       traceId,
@@ -144,7 +170,10 @@ export function makeServerAction<
     });
 
     try {
-      const output = await tool.execute({ input: parsed, ctx });
+      const runExecute = () => tool.execute({ input: parsed, ctx });
+      const output = lockKey
+        ? await withLock(lockKey, runExecute)
+        : await runExecute();
       const latencyMs = Date.now() - startedAt;
 
       void agent._audit?.record({

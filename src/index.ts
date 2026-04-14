@@ -47,6 +47,10 @@ export type { VerifyOutcome, VerifyResult } from "./audit/verify";
 // Structural DB type (builders pass their own Drizzle instance)
 export type { DrizzleDbLike } from "./db/types";
 
+// Concurrency control (process-level mutex)
+export { acquireLock, withLock } from "./concurrency/mutex";
+export type { MutexLock } from "./concurrency/mutex";
+
 // HITL (human-in-the-loop) approval state machine
 export {
   PendingToolStore,

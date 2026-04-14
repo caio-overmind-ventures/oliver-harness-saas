@@ -44,6 +44,7 @@ import { ToolError, wrapError } from "../core/errors";
 import { hashInput } from "../audit/hash";
 import { newTraceId, type AuditLogger } from "../audit/logger";
 import { runVerify } from "../audit/verify";
+import { withLock } from "../concurrency/mutex";
 import type { PendingToolStore } from "../hitl/pending";
 
 export interface AgentToolsConfig<TContextExt> {
@@ -238,6 +239,33 @@ function wrapAsAISDKTool<TContextExt>(
       }
 
       // Non-HITL path — execute immediately.
+
+      // Concurrency key (optional). If the tool declares one, wrap
+      // execute() in a mutex so parallel calls on the same resource
+      // serialize. Key derivation runs outside the mutex and is expected
+      // to be cheap + pure.
+      let lockKey: string | undefined;
+      if (oliverTool.concurrencyKey) {
+        try {
+          lockKey = oliverTool.concurrencyKey({ input: parsed as never, ctx });
+        } catch (err) {
+          const wrapped = wrapError(oliverTool.name, err);
+          void audit?.record({
+            traceId,
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+            toolName: oliverTool.name,
+            source: "agent",
+            status: "failed",
+            inputHash,
+            input: parsed,
+            errorMessage: wrapped.message,
+            errorCode: wrapped.code,
+          });
+          return { status: "error" as const, error: wrapped.toJSON() };
+        }
+      }
+
       void audit?.record({
         traceId,
         orgId: ctx.orgId,
@@ -250,7 +278,11 @@ function wrapAsAISDKTool<TContextExt>(
       });
 
       try {
-        const result = await oliverTool.execute({ input: parsed, ctx });
+        const result = lockKey
+          ? await withLock(lockKey, () =>
+              oliverTool.execute({ input: parsed, ctx }),
+            )
+          : await oliverTool.execute({ input: parsed, ctx });
         const latencyMs = Date.now() - startedAt;
 
         void audit?.record({

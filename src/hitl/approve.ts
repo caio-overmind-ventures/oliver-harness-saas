@@ -31,6 +31,7 @@
 
 import { newTraceId } from "../audit/logger";
 import { runVerify } from "../audit/verify";
+import { withLock } from "../concurrency/mutex";
 import type { ToolContext } from "../core/context";
 import { ToolError, wrapError } from "../core/errors";
 import type { Agent } from "../gateway/createAgent";
@@ -195,11 +196,40 @@ export async function approvePendingToolImpl<TContextExt>(
     pendingToolId: pending.id,
   });
 
+  // Concurrency key (optional). Two approvals in different tabs hitting
+  // the same resource must not race — wrap execute() in the same mutex
+  // the agent-channel uses.
+  let lockKey: string | undefined;
+  if (tool.concurrencyKey) {
+    try {
+      lockKey = tool.concurrencyKey({ input: pending.input as never, ctx });
+    } catch (err) {
+      const wrapped =
+        err instanceof ToolError ? err : wrapError(pending.toolName, err);
+      await agent._pending.markFailed(pending.id, wrapped.message);
+      void agent._audit?.record({
+        traceId,
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        toolName: pending.toolName,
+        source: "ui",
+        status: "failed",
+        inputHash: pending.inputHash,
+        input: pending.input,
+        errorMessage: wrapped.message,
+        errorCode: wrapped.code,
+        pendingToolId: pending.id,
+      });
+      return { ok: false, error: wrapped.toJSON() };
+    }
+  }
+
   try {
-    const result = await tool.execute({
-      input: pending.input as never,
-      ctx,
-    });
+    const runExecute = () =>
+      tool.execute({ input: pending.input as never, ctx });
+    const result = lockKey
+      ? await withLock(lockKey, runExecute)
+      : await runExecute();
     const latencyMs = Date.now() - startedAt;
 
     await agent._pending.markSucceeded(pending.id, result);
