@@ -1,8 +1,16 @@
 {
-  "name": "@repo/oliver",
+  "name": "oliver-agent",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "description": "Opinionated agent harness for Next.js + Drizzle + Postgres SaaS. One tool → Next.js server action + Vercel AI SDK tool. HITL, audit, precondition, concurrency built in.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caio-overmind-ventures/oliver-harness-saas.git"
+  },
+  "homepage": "https://github.com/caio-overmind-ventures/oliver-harness-saas#readme",
+  "bugs": {
+    "url": "https://github.com/caio-overmind-ventures/oliver-harness-saas/issues"
+  },
   "keywords": [
     "agent",
     "llm",

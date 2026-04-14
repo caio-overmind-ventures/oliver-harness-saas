@@ -1,5 +1,5 @@
 /**
- * Boundary rule: @repo/oliver cannot import from apps/*.
+ * Boundary rule: oliver-agent cannot import from apps/*.
  *
  * Oliver is a harness that should be extractable to a standalone repo
  * via `git subtree split --prefix=packages/oliver` at any time. Importing

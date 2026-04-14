@@ -39,7 +39,7 @@ Most "AI harness" libraries are either too generic (yet another OpenAI wrapper) 
 **1. Define a tool**
 
 ```ts
-import { defineTool } from "@repo/oliver";
+import { defineTool } from "oliver-agent";
 import { z } from "zod";
 
 export const createCustomer = defineTool({
@@ -67,7 +67,7 @@ export const createCustomer = defineTool({
 ```ts
 // app/lib/oliver.ts
 import "server-only";
-import { createAgent, loadInstructions } from "@repo/oliver";
+import { createAgent, loadInstructions } from "oliver-agent";
 import { database } from "@/db";
 import { headers } from "next/headers";
 
@@ -254,7 +254,7 @@ oliver.pending_tools    -- HITL state machine
 oliver.audit_log         -- invocation + verification log
 ```
 
-Both exported from `@repo/oliver` as Drizzle tables. Add to your `drizzle.config.ts` schema paths, run `drizzle-kit generate` + `migrate`, done.
+Both exported from `oliver-agent` as Drizzle tables. Add to your `drizzle.config.ts` schema paths, run `drizzle-kit generate` + `migrate`, done.
 
 Same database as your app — you get cross-schema transactional atomicity for free (business write + audit write in one commit if you want).
 

@@ -79,7 +79,7 @@ export async function loadInstructions(
 
   if (!soul.trim()) {
     throw new Error(
-      `[@repo/oliver] Missing SOUL.md in ${dir}. Oliver requires at least a voice/principles file to run. Create SOUL.md with the agent's voice and principles.`,
+      `[oliver-agent] Missing SOUL.md in ${dir}. Oliver requires at least a voice/principles file to run. Create SOUL.md with the agent's voice and principles.`,
     );
   }
 
@@ -109,7 +109,7 @@ export function instructionsFromStrings(params: {
 }): AssembledInstructions {
   if (!params.soul.trim()) {
     throw new Error(
-      "[@repo/oliver] instructionsFromStrings: `soul` cannot be empty.",
+      "[oliver-agent] instructionsFromStrings: `soul` cannot be empty.",
     );
   }
   return {

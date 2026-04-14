@@ -2,7 +2,7 @@
  * Demo — visual proof that concurrencyKey serializes same-key execute()
  * and keeps different-key calls parallel.
  *
- * Run:  pnpm --filter @repo/oliver demo:mutex
+ * Run:  pnpm --filter oliver-agent demo:mutex
  */
 
 import { withLock } from "../src/concurrency/mutex";

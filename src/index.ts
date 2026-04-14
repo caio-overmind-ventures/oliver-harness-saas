@@ -1,5 +1,5 @@
 /**
- * @repo/oliver — the AI agent harness for Next.js SaaS.
+ * oliver-agent — the AI agent harness for Next.js SaaS.
  *
  * Define your operations once. Get a chat agent with approval gates,
  * audit log, and multi-tenancy built in.

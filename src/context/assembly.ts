@@ -45,7 +45,7 @@ export function assembleSession<TContextExt>(
 
   if (!agent._instructions) {
     throw new Error(
-      "[@repo/oliver] assembleSession called but no instructions were provided to createAgent. Pass `instructions: await loadInstructions(dir)` when creating the agent.",
+      "[oliver-agent] assembleSession called but no instructions were provided to createAgent. Pass `instructions: await loadInstructions(dir)` when creating the agent.",
     );
   }
 

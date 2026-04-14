@@ -26,7 +26,7 @@ export type { DrizzleDbLike };
 
 const defaultOnAuditFailure: OnAuditFailure = (event, cause) => {
   console.error(
-    `[@repo/oliver] audit write failed for tool "${event.toolName}" (status=${event.status}):`,
+    `[oliver-agent] audit write failed for tool "${event.toolName}" (status=${event.status}):`,
     cause,
   );
 };
@@ -66,7 +66,7 @@ export class AuditLogger {
         // If even the failure handler throws, fall back to console.error.
         // Nothing else we can do without risking a loop.
         console.error(
-          "[@repo/oliver] audit onFailure handler threw:",
+          "[oliver-agent] audit onFailure handler threw:",
           handlerErr,
         );
       }

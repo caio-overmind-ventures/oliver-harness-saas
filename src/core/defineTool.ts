@@ -165,7 +165,7 @@ export interface Tool<
  *
  * @example
  * ```ts
- * import { defineTool } from "@repo/oliver";
+ * import { defineTool } from "oliver-agent";
  * import { z } from "zod";
  *
  * export const applyDiscount = defineTool({

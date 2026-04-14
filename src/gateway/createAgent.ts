@@ -202,7 +202,7 @@ export function createAgent<TContextExt = Record<string, never>>(
   for (const tool of config.tools) {
     if (toolsByName.has(tool.name)) {
       throw new Error(
-        `[@repo/oliver] Duplicate tool name: "${tool.name}". Tool names must be unique within an agent.`,
+        `[oliver-agent] Duplicate tool name: "${tool.name}". Tool names must be unique within an agent.`,
       );
     }
     toolsByName.set(tool.name, tool);

@@ -63,7 +63,7 @@ Likely shape: `createAgent({ mutexBackend: "postgres" | "memory" | ... })`. Defa
 Current Kotte approval card is hand-rolled (~120 LOC). Ship a headless component:
 
 ```tsx
-import { OliverApprovalCard } from "@repo/oliver/ui";
+import { OliverApprovalCard } from "oliver-agent/ui";
 
 <OliverApprovalCard
   data={result}

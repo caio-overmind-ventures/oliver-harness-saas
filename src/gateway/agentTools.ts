@@ -199,7 +199,7 @@ function wrapAsAISDKTool<TContextExt>(
             // Preview is cosmetic — log and continue so approval still works.
             // biome-ignore lint/suspicious/noConsole: intentional diagnostic
             console.error(
-              `[@repo/oliver] previewChange failed for "${oliverTool.name}":`,
+              `[oliver-agent] previewChange failed for "${oliverTool.name}":`,
               err,
             );
           }
