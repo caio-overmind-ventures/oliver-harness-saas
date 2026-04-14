@@ -72,6 +72,33 @@ export interface Tool<
   }) => Promise<{ before: unknown; after: unknown }>;
 
   /**
+   * Optional. Domain-invariant check that runs BEFORE anything else in the
+   * tool lifecycle. Throw ToolError to block the call.
+   *
+   * Use this to encode rules like "published quote cannot be edited",
+   * "closed ticket cannot be reopened", "user must be the owner", etc. —
+   * things the UI normally enforces that tool authors otherwise have to
+   * remember to re-check inside execute().
+   *
+   * The harness runs precondition at every point state could diverge:
+   *   - Non-HITL: before audit(invoked) + before execute()
+   *   - HITL propose: before previewChange + before pending_tools insert
+   *   - HITL approve: before execute() runs (to catch races — the quote
+   *     might have been published between propose and approve)
+   *
+   * A single `conflict`-coded ToolError is the canonical way to signal
+   * "can't do this because of state" — the LLM sees the message and can
+   * explain it to the user. No approval card is rendered for a blocked
+   * HITL proposal.
+   *
+   * Must be read-only (no side effects). Should be fast (< 500ms).
+   */
+  precondition?: (params: {
+    input: z.infer<TInput>;
+    ctx: ToolContext<TContextExt>;
+  }) => Promise<void>;
+
+  /**
    * The actual tool logic. Receives validated input + the full context.
    * Must be idempotent or the builder must handle re-invocation safely
    * (Oliver v0 does NOT retry automatically).

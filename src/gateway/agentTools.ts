@@ -40,7 +40,7 @@ import { tool as aiTool, zodSchema } from "ai";
 import type { Tool } from "../core/defineTool";
 import type { ToolContext } from "../core/context";
 import type { Agent } from "./createAgent";
-import { wrapError } from "../core/errors";
+import { ToolError, wrapError } from "../core/errors";
 import { hashInput } from "../audit/hash";
 import { newTraceId, type AuditLogger } from "../audit/logger";
 import { runVerify } from "../audit/verify";
@@ -123,6 +123,34 @@ function wrapAsAISDKTool<TContextExt>(
       const cached = sessionCache.get(cacheKey);
       if (cached !== undefined) {
         return cached;
+      }
+
+      // Precondition — domain-invariant check runs BEFORE anything else.
+      // Fail-fast: no preview, no pending row, no audit("invoked"). A single
+      // "failed" audit row records the block with the tool's own error code.
+      // Applies to both HITL and non-HITL paths.
+      if (oliverTool.precondition) {
+        try {
+          await oliverTool.precondition({ input: parsed as never, ctx });
+        } catch (err) {
+          const wrapped =
+            err instanceof ToolError ? err : wrapError(oliverTool.name, err);
+          void audit?.record({
+            traceId,
+            orgId: ctx.orgId,
+            userId: ctx.userId,
+            toolName: oliverTool.name,
+            source: "agent",
+            status: "failed",
+            inputHash,
+            input: parsed,
+            errorMessage: wrapped.message,
+            errorCode: wrapped.code,
+          });
+          // Errors are NOT cached — see equivalent comment on the execute
+          // catch block below.
+          return { status: "error" as const, error: wrapped.toJSON() };
+        }
       }
 
       // HITL path — DB-backed state machine + re-invocation guard.

@@ -106,6 +106,31 @@ export function makeServerAction<
       return { ok: false, error: wrapped.toJSON() };
     }
 
+    // Precondition — same domain-invariant check we run in the agent and
+    // approve paths. Server actions are UI-triggered, but stale tabs or
+    // concurrent writers can still violate invariants, so we re-enforce.
+    if (tool.precondition) {
+      try {
+        await tool.precondition({ input: parsed, ctx });
+      } catch (err) {
+        const wrapped =
+          err instanceof ToolError ? err : wrapError(tool.name, err);
+        void agent._audit?.record({
+          traceId,
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          toolName: tool.name,
+          source: "ui",
+          status: "failed",
+          inputHash,
+          input: parsed,
+          errorMessage: wrapped.message,
+          errorCode: wrapped.code,
+        });
+        return { ok: false, error: wrapped.toJSON() };
+      }
+    }
+
     // Audit: invoked (fire-and-forget; logger never throws).
     void agent._audit?.record({
       traceId,

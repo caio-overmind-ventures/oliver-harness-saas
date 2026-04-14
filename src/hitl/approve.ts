@@ -140,6 +140,35 @@ export async function approvePendingToolImpl<TContextExt>(
   const traceId = newTraceId();
   const startedAt = Date.now();
 
+  // Re-run precondition at approve time. The HITL race we're catching:
+  // agent proposes at 10:00, precondition passes, user sees card. Someone
+  // (or the user themselves in another tab) changes domain state at 10:05
+  // that now makes the operation invalid. User clicks Approve at 10:10 —
+  // without this re-check, we'd proceed to execute() against stale state.
+  if (tool.precondition) {
+    try {
+      await tool.precondition({ input: pending.input as never, ctx });
+    } catch (err) {
+      const wrapped =
+        err instanceof ToolError ? err : wrapError(pending.toolName, err);
+      await agent._pending.markFailed(pending.id, wrapped.message);
+      void agent._audit?.record({
+        traceId,
+        orgId: ctx.orgId,
+        userId: ctx.userId,
+        toolName: pending.toolName,
+        source: "ui",
+        status: "failed",
+        inputHash: pending.inputHash,
+        input: pending.input,
+        errorMessage: wrapped.message,
+        errorCode: wrapped.code,
+        pendingToolId: pending.id,
+      });
+      return { ok: false, error: wrapped.toJSON() };
+    }
+  }
+
   await agent._pending.markExecuting(pending.id, ctx.userId);
 
   // Audit: approved → invoked (pair emitted before execute so the lifecycle
