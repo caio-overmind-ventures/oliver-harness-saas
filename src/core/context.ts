@@ -28,5 +28,5 @@ export interface ToolContextBase {
  *   type MyContext = ToolContext<{ db: Database; logger: Logger }>;
  *   // Resulting type has: orgId, userId, source, db, logger
  */
-export type ToolContext<TExtension = Record<string, never>> = ToolContextBase &
+export type ToolContext<TExtension = Record<string, unknown>> = ToolContextBase &
   TExtension;

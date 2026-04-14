@@ -19,10 +19,10 @@ cat package.json | grep -E '"next":\s*"\^?1[5-9]'
 cat package.json | grep -E '"drizzle-orm"'
 
 # 3. drizzle.config.ts or drizzle.config.js exists
-ls drizzle.config.{ts,js} 2>/dev/null
+[ -f drizzle.config.ts ] || [ -f drizzle.config.js ] && echo "OK"
 
 # 4. DATABASE_URL is configured
-grep -r "DATABASE_URL" .env* 2>/dev/null | head -1
+grep -h "DATABASE_URL" .env .env.local .env.development 2>/dev/null | head -1
 ```
 
 If all four pass, proceed. If any fail, output:
@@ -31,18 +31,21 @@ If all four pass, proceed. If any fail, output:
 
 ---
 
-## Step 1 — Install the package
+## Step 1 — Install the package and its peer requirements
 
 Detect the package manager (look for `pnpm-lock.yaml`, `bun.lock`, `yarn.lock`, or fall back to `npm`). Then run the equivalent of:
 
 ```bash
-pnpm add oliver-agent
+pnpm add oliver-agent ai zod server-only
+pnpm add @ai-sdk/openai      # or @ai-sdk/anthropic, @ai-sdk/google, etc.
 ```
+
+`oliver-agent` doesn't bundle `ai` or `zod` so the consumer's versions take precedence. `server-only` is used by `lib/oliver.ts` to assert the agent never gets imported into client bundles. The model-provider package is your choice.
 
 Verify:
 
 ```bash
-cat package.json | grep '"oliver-agent"'
+cat package.json | grep -E '"(oliver-agent|ai|zod|server-only)"'
 ```
 
 ---
@@ -106,12 +109,14 @@ then retry the migrate command.
 
 Before generating files, detect these so you place files in the right paths:
 
+Run each detection independently — do NOT chain with `&&` (a "no match" result is normal information, not failure):
+
 | Detection | How |
 |---|---|
-| Source root (`src/` or root) | `ls src/app 2>/dev/null && echo "src" \|\| echo "root"` |
+| Source root (`src/` or root) | `[ -d src/app ] && echo "src" \|\| echo "root"` |
 | Auth library | `cat package.json \| grep -E "better-auth\|@clerk\|next-auth\|@supabase/auth"` |
 | Drizzle instance file | `grep -rl "drizzle(" src/db lib/db db 2>/dev/null \| head -1` |
-| Database client (neon-http vs pg) | `cat package.json \| grep -E "@neondatabase/serverless\|^.*\"pg\":"` |
+| Database client | `cat package.json \| grep -E "@neondatabase/serverless\|\"pg\":"` |
 
 Use the detected source root for all paths below. If `src/app` exists, prefix with `src/`. Otherwise place at root.
 
@@ -147,13 +152,24 @@ export const oliver = createAgent({
     if (!session) throw new Error("Not authenticated");
 
     return {
-      orgId: override?.orgId ?? session.user.activeOrgId ?? session.user.id,
+      orgId: session.user.activeOrgId ?? session.user.id,
       userId: session.user.id,
       source: "ui",
       ...(override ?? {}),
     };
   },
 });
+```
+
+`override` is for **caller-known extension context** (e.g., a `slug` from URL params), not for replacing base fields like `orgId` / `userId` — those always come from auth. If you need to extend the context with custom fields, define a type and pass it explicitly:
+
+```ts
+import type { ToolContext } from "oliver-agent";
+
+type AppCtxExt = { slug?: string };
+type AppCtx = ToolContext<AppCtxExt>;
+
+export const oliver = createAgent<AppCtxExt>({ /* ... */ });
 ```
 
 **Adapt this file to the user's auth lib:**
@@ -227,7 +243,7 @@ Create `<src>/app/api/chat/route.ts`:
 
 ```ts
 import { headers } from "next/headers";
-import { streamText } from "ai";
+import { streamText, stepCountIs, convertToModelMessages } from "ai";
 import { openai } from "@ai-sdk/openai";   // or @ai-sdk/anthropic, etc.
 import { auth } from "@/lib/auth";
 import { oliver } from "@/lib/oliver";
@@ -247,18 +263,18 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai("gpt-5.1"),               // ← swap to user's preferred model
+    model: openai("gpt-5.1"),                        // ← swap to your model
     system: oliverSession.systemPrompt,
     tools: oliverSession.tools,
-    messages,
-    maxSteps: 25,
+    messages: await convertToModelMessages(messages), // UIMessage → ModelMessage (async in ai@6)
+    stopWhen: stepCountIs(25),                       // multi-step tool loop
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
 ```
 
-Adapt the auth import + the model provider import to whatever the user has installed.
+Adapt the auth import + the model provider import to whatever the user has installed. The `ai` SDK API above is for `ai@6.x` — earlier versions used `maxSteps` and `toDataStreamResponse()` instead.
 
 If the user already has a chat route at `/api/chat`, ASK USER:
 

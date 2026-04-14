@@ -1,6 +1,6 @@
 {
   "name": "oliver-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Opinionated agent harness for Next.js + Drizzle + Postgres SaaS. One tool → Next.js server action + Vercel AI SDK tool. HITL, audit, precondition, concurrency built in.",
   "repository": {

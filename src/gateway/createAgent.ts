@@ -195,7 +195,7 @@ export interface Agent<TContextExt> {
  *
  * @throws Error if tools have duplicate names.
  */
-export function createAgent<TContextExt = Record<string, never>>(
+export function createAgent<TContextExt = Record<string, unknown>>(
   config: AgentConfig<TContextExt>,
 ): Agent<TContextExt> {
   const toolsByName = new Map<string, Tool<any, any, TContextExt>>();

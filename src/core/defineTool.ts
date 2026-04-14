@@ -18,7 +18,7 @@ import type { ToolContext } from "./context";
 export interface Tool<
   TInput extends z.ZodTypeAny = z.ZodTypeAny,
   TOutput = unknown,
-  TContextExt = Record<string, never>,
+  TContextExt = Record<string, unknown>,
 > {
   /**
    * Unique identifier. Used as the tool name exposed to the LLM and as the
@@ -197,7 +197,7 @@ export interface Tool<
 export function defineTool<
   TInput extends z.ZodTypeAny,
   TOutput,
-  TContextExt = Record<string, never>,
+  TContextExt = Record<string, unknown>,
 >(
   tool: Tool<TInput, TOutput, TContextExt>,
 ): Tool<TInput, TOutput, TContextExt> {
