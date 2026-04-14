@@ -8,7 +8,8 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo:mutex": "tsx scripts/demo-mutex.ts"
   },
   "dependencies": {
     "ai": "^6.0.144",
