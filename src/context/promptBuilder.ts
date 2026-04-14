@@ -34,7 +34,7 @@ import type { Tool } from "../core/defineTool";
 import type { ToolContextBase } from "../core/context";
 
 export interface PageContext {
-  /** Current route path (e.g., "/org/geoia/quotes/qot_abc"). */
+  /** Current route path (e.g., "/org/acme/quotes/qot_abc"). */
   route?: string;
   /** Human-readable label for the focused entity (e.g., "quote Q00042"). */
   entityLabel?: string;

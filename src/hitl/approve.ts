@@ -2,7 +2,7 @@
  * Approve / Reject pending tools.
  *
  * These are generic dispatchers exposed as server actions on the Agent.
- * Kotte (and any other builder) wires the approval card UI to them without
+ * Builders wire the approval card UI to them without
  * writing tool-specific code — any requiresApproval=true tool flows through
  * the same approve/reject path.
  *

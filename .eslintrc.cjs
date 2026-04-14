@@ -3,7 +3,7 @@
  *
  * Oliver is a harness that should be extractable to a standalone repo
  * via `git subtree split --prefix=packages/oliver` at any time. Importing
- * from apps/* would couple the harness to Kotte and break extraction.
+ * from apps/* would couple the harness to the host app and break extraction.
  *
  * If you need something from apps/*:
  *   1. Copy the function into packages/oliver/src/lib/

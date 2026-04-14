@@ -27,17 +27,17 @@ describe("buildSystemPrompt", () => {
   it("emits all expected XML sections when all inputs provided", () => {
     const prompt = buildSystemPrompt({
       instructions: instructionsFromStrings({
-        soul: "I am Kotte's agent.",
+        soul: "I am the agent.",
         domain: "Quotes have phases.",
         playbook: "DISCOVER → SUMMARIZE → EXECUTE.",
         lessons: "Never bypass approval.",
       }),
       tools: [makeTool("createCustomer", "Create a customer")],
-      ctx: makeCtx({ slug: "geoia" }),
-      pageContext: { route: "/org/geoia/customers" },
+      ctx: makeCtx({ slug: "acme" }),
+      pageContext: { route: "/org/acme/customers" },
     });
 
-    expect(prompt).toContain("<voice>\nI am Kotte's agent.\n</voice>");
+    expect(prompt).toContain("<voice>\nI am the agent.\n</voice>");
     expect(prompt).toContain("<domain>\nQuotes have phases.\n</domain>");
     expect(prompt).toContain("<playbook>\nDISCOVER → SUMMARIZE → EXECUTE.\n</playbook>");
     expect(prompt).toContain("<lessons>\nNever bypass approval.\n</lessons>");
@@ -46,9 +46,9 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("<anti_hallucination>");
     expect(prompt).toContain("<tenant>");
     expect(prompt).toContain("orgId: org_test");
-    expect(prompt).toContain("slug: geoia");
+    expect(prompt).toContain("slug: acme");
     expect(prompt).toContain("<page_context>");
-    expect(prompt).toContain("route: /org/geoia/customers");
+    expect(prompt).toContain("route: /org/acme/customers");
   });
 
   it("omits empty sections (domain, playbook, lessons)", () => {
@@ -130,7 +130,7 @@ describe("buildSystemPrompt", () => {
       instructions: instructionsFromStrings({ soul: "x" }),
       tools: [],
       ctx: makeCtx({
-        slug: "geoia",
+        slug: "acme",
         locale: "pt-BR",
         priority: 5,
         admin: true,
@@ -138,7 +138,7 @@ describe("buildSystemPrompt", () => {
       }),
     });
 
-    expect(prompt).toContain("slug: geoia");
+    expect(prompt).toContain("slug: acme");
     expect(prompt).toContain("locale: pt-BR");
     expect(prompt).toContain("priority: 5");
     expect(prompt).toContain("admin: true");

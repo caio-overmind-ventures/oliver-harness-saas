@@ -162,11 +162,11 @@ describe("serverAction channel", () => {
     });
 
     const action = agent.serverAction(probe);
-    const result = await action({}, { slug: "geoia" });
+    const result = await action({}, { slug: "acme" });
 
     expect(result).toEqual({
       ok: true,
-      data: { slug: "geoia", orgId: "org_test" },
+      data: { slug: "acme", orgId: "org_test" },
     });
   });
 

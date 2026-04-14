@@ -1,6 +1,6 @@
 /**
- * Oliver's ID generators. Prefixed nanoid pattern matching the Kotte
- * convention (prod_xxx, qot_xxx, etc.).
+ * Oliver's ID generators. Prefixed-nanoid pattern (e.g. `hpt_xxx`) so
+ * IDs are scannable and self-describing in audit logs.
  *
  * - hpt_xxx = harness pending tool (HITL)
  * - hal_xxx = harness audit log entry

@@ -16,7 +16,7 @@ The core primitives for building an agent-powered SaaS:
 - **Context assembly** — stable system-prompt prefix + mutable suffix for KV-cache friendliness
 - **Instructions** — progressive-disclosure `.md` files (SOUL / domain / playbook / lessons) loaded once at module init
 
-97 tests, typecheck clean, live-exercised end-to-end by Kotte CPQ.
+97 tests, typecheck clean, live-exercised end-to-end in a real B2B SaaS.
 
 ---
 
@@ -60,7 +60,7 @@ Likely shape: `createAgent({ mutexBackend: "postgres" | "memory" | ... })`. Defa
 
 ### Approval card React component
 
-Current Kotte approval card is hand-rolled (~120 LOC). Ship a headless component:
+Adopters currently hand-roll the approval card (~120 LOC). Ship a headless component:
 
 ```tsx
 import { OliverApprovalCard } from "oliver-agent/ui";
@@ -125,4 +125,4 @@ Planned once spun off:
 - Decision log (ADR-style) for API changes
 - Semantic versioning from v0.1+
 
-Pre-spin-off: Oliver is developed in the Kotte monorepo. Suggestions welcome via the Kotte channel, but no external PRs yet.
+Pre-spin-off: Oliver is developed alongside a real adopter. Suggestions welcome via issues, but no external PRs yet.
