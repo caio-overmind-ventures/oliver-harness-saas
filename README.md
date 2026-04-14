@@ -362,6 +362,55 @@ Same database as your app — cross-schema transactional atomicity available.
 
 ---
 
+## Slash commands
+
+Chat shortcuts that bypass the LLM. When the user types `/pending` or `/help`, the chat route intercepts BEFORE calling the model — cheap, deterministic, no token burn. Useful for harness state inspection, `/clear`-style operator commands, and surfacing what the agent can do.
+
+Three commands ship built in:
+
+| Command | What it does |
+|---|---|
+| `/help` | Lists all available commands. |
+| `/tools` | Lists registered tools with descriptions, marks HITL ones. |
+| `/pending` | Lists active HITL approvals waiting for the user. |
+
+Adopters add custom commands via `defineSlashCommand` and register them on the agent:
+
+```ts
+import { defineSlashCommand } from "oliver-agent";
+
+const audit = defineSlashCommand({
+  name: "audit",
+  description: "Show the last 10 audit entries.",
+  handler: async ({ ctx }) => {
+    const rows = await db.select().from(auditLog)
+      .where(eq(auditLog.orgId, ctx.orgId))
+      .orderBy(desc(auditLog.createdAt)).limit(10);
+    return rows.map((r) => `${r.toolName} → ${r.status}`).join("\n");
+  },
+});
+
+createAgent({
+  tools: allTools,
+  commands: [audit],   // user commands take precedence; can shadow built-ins
+  ...
+});
+```
+
+Wire in your chat route — short-circuit BEFORE `streamText`:
+
+```ts
+const slashText = await oliver.handleSlashCommand(messages, ctx);
+if (slashText !== null) return oliver.respondWithText(slashText);
+// otherwise: streamText(...)
+```
+
+`respondWithText` returns a UI message stream Response, so the chat UI sees the result like any other assistant message.
+
+UI-only commands (`/clear`, `/new`) live in the chat UI — `assistant-ui` exposes `aui.thread.reset()` for that. They never need to round-trip to the backend.
+
+---
+
 ## Testing
 
 ```bash
@@ -746,6 +795,53 @@ oliver.audit_log         -- log de invocação + verificação
 ```
 
 Mesmo banco da app — atomicidade transacional cross-schema disponível.
+
+## Slash commands
+
+Atalhos no chat que pulam o LLM. Quando o user digita `/pending` ou `/help`, a chat route intercepta ANTES de chamar o modelo — barato, determinístico, sem queimar token. Útil pra inspecionar estado do harness, comandos tipo `/clear` de operador, e mostrar o que o agent sabe fazer.
+
+Três commands vêm built-in:
+
+| Command | O que faz |
+|---|---|
+| `/help` | Lista todos os comandos disponíveis. |
+| `/tools` | Lista tools registradas com descriptions, marca as HITL. |
+| `/pending` | Lista approvals HITL ativos esperando o user. |
+
+Adopters adicionam comandos custom via `defineSlashCommand` e registram no agent:
+
+```ts
+import { defineSlashCommand } from "oliver-agent";
+
+const audit = defineSlashCommand({
+  name: "audit",
+  description: "Mostra os últimos 10 audit entries.",
+  handler: async ({ ctx }) => {
+    const rows = await db.select().from(auditLog)
+      .where(eq(auditLog.orgId, ctx.orgId))
+      .orderBy(desc(auditLog.createdAt)).limit(10);
+    return rows.map((r) => `${r.toolName} → ${r.status}`).join("\n");
+  },
+});
+
+createAgent({
+  tools: allTools,
+  commands: [audit],   // user commands têm precedência; podem sobrescrever built-ins
+  ...
+});
+```
+
+Wire na chat route — short-circuit ANTES de `streamText`:
+
+```ts
+const slashText = await oliver.handleSlashCommand(messages, ctx);
+if (slashText !== null) return oliver.respondWithText(slashText);
+// senão: streamText(...)
+```
+
+`respondWithText` retorna um Response de UI message stream, então o chat UI vê o resultado como qualquer outra mensagem do assistant.
+
+Comandos UI-only (`/clear`, `/new`) vivem no chat UI — `assistant-ui` expõe `aui.thread.reset()` pra isso. Não precisam round-trip pro backend.
 
 ## Testing
 

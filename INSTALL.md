@@ -254,13 +254,19 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
-  const oliverSession = oliver.assembleSession({
-    ctx: {
-      orgId: session.user.activeOrgId ?? session.user.id,
-      userId: session.user.id,
-      source: "agent",
-    },
-  });
+  const ctx = {
+    orgId: session.user.activeOrgId ?? session.user.id,
+    userId: session.user.id,
+    source: "agent" as const,
+  };
+
+  // Slash command dispatch — short-circuits before LLM call when the
+  // user typed something like /pending, /tools, /help.
+  const slashText = await oliver.handleSlashCommand(messages, ctx);
+  if (slashText !== null) return oliver.respondWithText(slashText);
+
+  // Otherwise, normal agent flow.
+  const oliverSession = oliver.assembleSession({ ctx });
 
   const result = streamText({
     model: openai("gpt-5.1"),                        // ← swap to your model
@@ -273,6 +279,8 @@ export async function POST(req: Request) {
   return result.toUIMessageStreamResponse();
 }
 ```
+
+Built-in slash commands (`/help`, `/tools`, `/pending`) work out of the box. Add custom ones via the `commands` option of `createAgent` — see [README → Slash commands](./README.md#slash-commands) for the API.
 
 Adapt the auth import + the model provider import to whatever the user has installed. The `ai` SDK API above is for `ai@6.x` — earlier versions used `maxSteps` and `toDataStreamResponse()` instead.
 

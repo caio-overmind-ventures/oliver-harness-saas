@@ -40,6 +40,13 @@ import {
   type ApprovePendingToolInput,
   type RejectPendingToolInput,
 } from "../hitl/approve";
+import {
+  dispatchSlashCommand,
+  type DispatchInput,
+} from "../commands/handler";
+import { createBuiltinCommands } from "../commands/builtins";
+import { respondWithText } from "../commands/respond";
+import type { SlashCommand, SlashCommandResult } from "../commands/types";
 
 export interface AgentConfig<TContextExt> {
   /**
@@ -99,6 +106,14 @@ export interface AgentConfig<TContextExt> {
   resolveServerActionContext: (
     ctxOverride?: Partial<TContextExt>,
   ) => Promise<ToolContext<TContextExt>>;
+
+  /**
+   * Optional. Slash commands the user can type in chat to bypass the
+   * LLM (e.g. `/pending`, `/help`). Built-in commands `/help`, `/tools`,
+   * `/pending` are added automatically; user commands take precedence
+   * by name and can shadow built-ins.
+   */
+  readonly commands?: ReadonlyArray<SlashCommand<TContextExt>>;
 }
 
 export interface Agent<TContextExt> {
@@ -172,6 +187,29 @@ export interface Agent<TContextExt> {
   listPendingTools(orgId: string): Promise<PendingToolRow[]>;
 
   /**
+   * Check whether the latest user message in `messages` is a slash
+   * command. Returns the response text if matched; null otherwise.
+   *
+   * Use in your chat route to short-circuit before calling the LLM:
+   * ```ts
+   * const slashText = await oliver.handleSlashCommand(messages, ctx);
+   * if (slashText !== null) return oliver.respondWithText(slashText);
+   * // ...otherwise proceed with streamText
+   * ```
+   */
+  handleSlashCommand(
+    messages: unknown[],
+    ctx: ToolContext<TContextExt>,
+  ): Promise<SlashCommandResult | null>;
+
+  /**
+   * Wrap a slash command result as a UI message stream Response — same
+   * format `streamText().toUIMessageStreamResponse()` returns. The chat
+   * UI sees it like any other assistant message.
+   */
+  respondWithText(text: string): Response;
+
+  /**
    * Internal: resolve context for a server action call. Exposed so
    * channel adapters can invoke the builder-provided resolver.
    * Not intended for direct use by builders.
@@ -188,6 +226,9 @@ export interface Agent<TContextExt> {
 
   /** Internal: HITL pending-tool store. Undefined when no db configured. */
   _pending?: PendingToolStore;
+
+  /** Internal: full slash-command registry (built-ins + user-supplied). */
+  _commands?: ReadonlyArray<SlashCommand<TContextExt>>;
 }
 
 /**
@@ -237,11 +278,27 @@ export function createAgent<TContextExt = Record<string, unknown>>(
       if (!pending) return [];
       return pending.listActive(orgId);
     },
+    handleSlashCommand(messages, ctx) {
+      return dispatchSlashCommand({
+        messages,
+        ctx,
+        commands: agent._commands ?? [],
+      });
+    },
+    respondWithText(text) {
+      return respondWithText(text);
+    },
     _resolveServerActionContext: config.resolveServerActionContext,
     _instructions: config.instructions,
     _audit: audit,
     _pending: pending,
   };
+
+  // Slash command registry: user commands take precedence (matched first),
+  // then built-ins. Built-ins close over the agent so `/help` / `/tools` /
+  // `/pending` see whatever's actually registered.
+  const builtins = createBuiltinCommands(agent);
+  agent._commands = [...(config.commands ?? []), ...builtins];
 
   return agent;
 }

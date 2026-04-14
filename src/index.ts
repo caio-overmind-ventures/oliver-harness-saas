@@ -66,6 +66,15 @@ export type {
   RejectPendingToolInput,
 } from "./hitl/approve";
 
+// Slash commands (chat shortcuts that bypass the LLM)
+export { defineSlashCommand } from "./commands/defineSlashCommand";
+export { respondWithText } from "./commands/respond";
+export type {
+  SlashCommand,
+  SlashCommandResult,
+  SlashCommandHandlerParams,
+} from "./commands/types";
+
 // Database schema (Oliver lives in its own `oliver` Postgres schema).
 // Builder references these to include Oliver's tables in their Drizzle
 // migration setup.
