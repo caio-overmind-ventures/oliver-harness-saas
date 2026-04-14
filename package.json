@@ -2,6 +2,20 @@
   "name": "@repo/oliver",
   "version": "0.0.0",
   "private": true,
+  "description": "Opinionated agent harness for Next.js + Drizzle + Postgres SaaS. One tool → Next.js server action + Vercel AI SDK tool. HITL, audit, precondition, concurrency built in.",
+  "keywords": [
+    "agent",
+    "llm",
+    "ai-agent",
+    "hitl",
+    "human-in-the-loop",
+    "tool-calling",
+    "nextjs",
+    "drizzle",
+    "vercel-ai-sdk",
+    "mcp"
+  ],
+  "license": "MIT",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
