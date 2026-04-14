@@ -22,6 +22,16 @@ That single definition ships through both channels, enforces the "published quot
 
 ---
 
+## Quick install with your AI coding agent
+
+Already coding with Claude Code, Codex, Cursor, or Cline? Tell your agent:
+
+> "Install Oliver in this project — follow the instructions at https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
+
+Your agent reads [INSTALL.md](./INSTALL.md), detects your stack (auth lib, ORM setup, project layout), generates the files, runs the migration, and reports back. Two minutes. Manual install in [Getting started](#getting-started) below if you'd rather drive yourself.
+
+---
+
 ## Background
 
 Oliver was built after studying a set of agent harnesses across two scopes.
@@ -405,6 +415,14 @@ defineTool({
 ```
 
 Essa única definição roda nos dois canais, garante a invariante "cotação publicada é read-only" em todo passo, bloqueia race em chamadas paralelas na mesma cotação, mostra um card before/after no chat, só executa depois do clique humano, e confere o DB depois.
+
+## Quick install com seu coding agent
+
+Já está codando com Claude Code, Codex, Cursor ou Cline? Fala pro seu agent:
+
+> "Instala o Oliver nesse projeto — segue as instruções em https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
+
+Seu agent lê [INSTALL.md](./INSTALL.md), detecta seu stack (lib de auth, setup do ORM, layout do projeto), gera os arquivos, roda a migration, e te reporta. Dois minutos. Install manual em [Começando](#começando) abaixo se preferir dirigir.
 
 ## Background
 
