@@ -15,11 +15,17 @@
 import type { z } from "zod";
 import type { Tool } from "../core/defineTool";
 import type { ToolContext } from "../core/context";
+import type { AssembledInstructions } from "../instructions/loader";
 import {
   makeServerAction,
   type ServerActionFn,
 } from "./serverAction";
 import { buildAgentTools, type AgentToolsConfig } from "./agentTools";
+import {
+  assembleSession,
+  type AssembleSessionInput,
+  type SessionBundle,
+} from "../context/assembly";
 
 export interface AgentConfig<TContextExt> {
   /**
@@ -28,6 +34,16 @@ export interface AgentConfig<TContextExt> {
    * (e.g., `db`, `logger`, etc.) is the same shape everywhere.
    */
   readonly tools: ReadonlyArray<Tool<any, any, TContextExt>>;
+
+  /**
+   * Instructions snapshot to assemble into the system prompt on every
+   * agent-channel session. Load once with `loadInstructions(dir)` at
+   * startup — reading files per turn would invalidate the KV-cache.
+   *
+   * Optional only so server-action-only usage doesn't require this.
+   * `agent.assembleSession(...)` throws if called without instructions.
+   */
+  readonly instructions?: AssembledInstructions;
 
   /**
    * Resolves the full tool context for a **server action** invocation.
@@ -70,9 +86,19 @@ export interface Agent<TContextExt> {
   /**
    * Build the Vercel AI SDK tool record for a session. Called once per
    * chat session from the chat route, then passed to `streamText` etc.
+   *
+   * Prefer `assembleSession()` when you also need the system prompt.
    */
   // biome-ignore lint/suspicious/noExplicitAny: AI SDK tool return type is not meant to be preserved
   agentTools(config: AgentToolsConfig<TContextExt>): Record<string, any>;
+
+  /**
+   * Assemble a full agent session: tools + system prompt, ready to hand
+   * to the LLM. Throws if `instructions` was not provided to createAgent.
+   *
+   * This is the recommended entry point for the agent channel.
+   */
+  assembleSession(input: AssembleSessionInput<TContextExt>): SessionBundle;
 
   /**
    * Internal: resolve context for a server action call. Exposed so
@@ -82,6 +108,9 @@ export interface Agent<TContextExt> {
   _resolveServerActionContext: (
     ctxOverride?: Partial<TContextExt>,
   ) => Promise<ToolContext<TContextExt>>;
+
+  /** Internal: instructions snapshot, used by assembleSession. */
+  _instructions?: AssembledInstructions;
 }
 
 /**
@@ -113,7 +142,11 @@ export function createAgent<TContextExt = Record<string, never>>(
     agentTools(toolsConfig) {
       return buildAgentTools(agent, toolsConfig);
     },
+    assembleSession(input) {
+      return assembleSession(agent, input);
+    },
     _resolveServerActionContext: config.resolveServerActionContext,
+    _instructions: config.instructions,
   };
 
   return agent;

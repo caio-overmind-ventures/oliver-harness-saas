@@ -23,8 +23,22 @@ export type {
 } from "./gateway/serverAction";
 export type { AgentToolsConfig } from "./gateway/agentTools";
 
-// Context assembly, approval, audit — exported as they're built
-// (Phase 3+ of implementation brief)
+// Instructions (authored + learned files loaded into a snapshot)
+export {
+  loadInstructions,
+  instructionsFromStrings,
+} from "./instructions/loader";
+export type { AssembledInstructions } from "./instructions/loader";
+
+// Context (session assembly + prompt builder)
+export { buildSystemPrompt } from "./context/promptBuilder";
+export type { PageContext, BuildPromptInput } from "./context/promptBuilder";
+export type {
+  AssembleSessionInput,
+  SessionBundle,
+} from "./context/assembly";
+
+// Approval, audit — exported as they're built (Phase 4+)
 
 // Database schema (builder includes in their Drizzle config)
 export {
