@@ -1,7 +1,7 @@
 # Install Oliver in this project
 
 > **For LLM coding agents** (Claude Code, Codex, Cursor, Cline, etc.) to read and execute.
-> Human readers should follow [README.md → Getting started](./README.md#getting-started).
+> Human readers should follow [README.md → Manual install](./README.md#manual-install).
 
 You are installing `oliver-agent` into the user's existing Next.js + Drizzle + Postgres SaaS. Execute the steps below in order. **Do not skip steps. Do not improvise file paths.** If a verification fails, STOP and tell the user.
 
@@ -345,7 +345,7 @@ Expected: streaming response that includes a tool call to `createCustomer` and a
 Tell the user the following are NOT included and they need to add them separately:
 
 1. **Chat UI** — Oliver doesn't ship a chat panel. Recommend [assistant-ui](https://www.assistant-ui.com/) or [Shadcn chat](https://shadcn-chat.vercel.app/).
-2. **Approval card component** — only needed when shipping a HITL tool (`requiresApproval: true`). Reference implementation is ~120 LOC of headless React; pattern in [README.md → Getting started step 8](./README.md#8-approval-card-when-you-ship-a-hitl-tool).
+2. **Approval card component** — only needed when shipping a HITL tool (`requiresApproval: true`). Reference implementation is ~120 LOC of headless React; pattern in [README.md → Manual install step 8](./README.md#8-approval-card-when-you-ship-a-hitl-tool).
 3. **More tools** — `createCustomer` is one example. Add more under `tools/` and register them in `tools/index.ts`.
 
 ---

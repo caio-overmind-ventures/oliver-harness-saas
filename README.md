@@ -22,13 +22,21 @@ That single definition ships through both channels, enforces the "published quot
 
 ---
 
-## Quick install with your AI coding agent
+## Install
 
-Already coding with Claude Code, Codex, Cursor, or Cline? Tell your agent:
+Two paths to the same end-state. Pick what fits your workflow.
+
+### Option A — AI coding agent (~2 min)
+
+If you already work with Claude Code, Codex, Cursor, or Cline, tell your agent:
 
 > "Install Oliver in this project — follow the instructions at https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
 
-Your agent reads [INSTALL.md](./INSTALL.md), detects your stack (auth lib, ORM setup, project layout), generates the files, runs the migration, and reports back. Two minutes. Manual install in [Getting started](#getting-started) below if you'd rather drive yourself.
+Your agent reads [INSTALL.md](./INSTALL.md), detects your stack (auth lib, ORM setup, project layout), generates the files, runs the migration, and reports back.
+
+### Option B — Manual (~15 min)
+
+8 steps you run yourself. See [Manual install](#manual-install) further down.
 
 ---
 
@@ -108,9 +116,9 @@ What Oliver is **not**: a workflow engine, a chat UI library, an auth solution, 
 
 ---
 
-## Getting started
+## Manual install
 
-15 minutes from zero to your first agent-callable tool. Assumes you have a Next.js 15+ app with Drizzle + Postgres.
+The 8-step path. Same end-state as the AI install above; pick this if you don't have an AI coding agent in your workflow or want to drive each step yourself. ~15 minutes. Assumes you have a Next.js 15+ app with Drizzle + Postgres.
 
 ### 1. Install
 
@@ -416,13 +424,21 @@ defineTool({
 
 Essa única definição roda nos dois canais, garante a invariante "cotação publicada é read-only" em todo passo, bloqueia race em chamadas paralelas na mesma cotação, mostra um card before/after no chat, só executa depois do clique humano, e confere o DB depois.
 
-## Quick install com seu coding agent
+## Instalação
 
-Já está codando com Claude Code, Codex, Cursor ou Cline? Fala pro seu agent:
+Dois caminhos pro mesmo end-state. Escolhe o que combina com seu workflow.
+
+### Opção A — Coding agent (~2 min)
+
+Se você já trabalha com Claude Code, Codex, Cursor ou Cline, fala pro seu agent:
 
 > "Instala o Oliver nesse projeto — segue as instruções em https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
 
-Seu agent lê [INSTALL.md](./INSTALL.md), detecta seu stack (lib de auth, setup do ORM, layout do projeto), gera os arquivos, roda a migration, e te reporta. Dois minutos. Install manual em [Começando](#começando) abaixo se preferir dirigir.
+Seu agent lê [INSTALL.md](./INSTALL.md), detecta seu stack (lib de auth, setup do ORM, layout do projeto), gera os arquivos, roda a migration, e te reporta.
+
+### Opção B — Manual (~15 min)
+
+8 passos que você executa. Veja [Install manual](#install-manual) mais abaixo.
 
 ## Background
 
@@ -496,9 +512,9 @@ O builder escreve tools e instructions. Oliver faz o resto: monta o system promp
 
 O que Oliver **não é**: workflow engine, biblioteca de chat UI, solução de auth, camada de routing de modelo.
 
-## Começando
+## Install manual
 
-15 minutos do zero até sua primeira tool chamável pelo agent. Assume Next.js 15+ com Drizzle + Postgres.
+O caminho de 8 passos. Mesmo end-state que o install com AI acima; escolhe esse se você não tem coding agent no workflow ou prefere dirigir cada passo. ~15 minutos. Assume Next.js 15+ com Drizzle + Postgres.
 
 ### 1. Instalar
 
