@@ -40,12 +40,27 @@ export type {
 
 // Audit (invocation log + verify hook)
 export { AuditLogger, newTraceId } from "./audit/logger";
-export type { DrizzleDbLike } from "./audit/logger";
 export { hashInput } from "./audit/hash";
 export type { AuditEvent, AuditStatus, OnAuditFailure } from "./audit/types";
 export type { VerifyOutcome, VerifyResult } from "./audit/verify";
 
-// Approval — next (Phase 4b)
+// Structural DB type (builders pass their own Drizzle instance)
+export type { DrizzleDbLike } from "./db/types";
+
+// HITL (human-in-the-loop) approval state machine
+export {
+  PendingToolStore,
+  DEFAULT_APPROVAL_TTL_MS,
+} from "./hitl/pending";
+export type {
+  PendingToolRow,
+  PendingToolStatus,
+  CreatePendingInput,
+} from "./hitl/pending";
+export type {
+  ApprovePendingToolInput,
+  RejectPendingToolInput,
+} from "./hitl/approve";
 
 // Database schema (Oliver lives in its own `oliver` Postgres schema).
 // Builder references these to include Oliver's tables in their Drizzle

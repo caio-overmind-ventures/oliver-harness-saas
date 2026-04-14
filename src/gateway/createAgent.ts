@@ -19,6 +19,7 @@ import type { AssembledInstructions } from "../instructions/loader";
 import {
   makeServerAction,
   type ServerActionFn,
+  type ServerActionResult,
 } from "./serverAction";
 import { buildAgentTools, type AgentToolsConfig } from "./agentTools";
 import {
@@ -26,11 +27,19 @@ import {
   type AssembleSessionInput,
   type SessionBundle,
 } from "../context/assembly";
-import {
-  AuditLogger,
-  type DrizzleDbLike,
-} from "../audit/logger";
+import { AuditLogger } from "../audit/logger";
+import type { DrizzleDbLike } from "../db/types";
 import type { OnAuditFailure } from "../audit/types";
+import {
+  PendingToolStore,
+  type PendingToolRow,
+} from "../hitl/pending";
+import {
+  approvePendingToolImpl,
+  rejectPendingToolImpl,
+  type ApprovePendingToolInput,
+  type RejectPendingToolInput,
+} from "../hitl/approve";
 
 export interface AgentConfig<TContextExt> {
   /**
@@ -129,6 +138,40 @@ export interface Agent<TContextExt> {
   assembleSession(input: AssembleSessionInput<TContextExt>): SessionBundle;
 
   /**
+   * Approve a pending tool and run it.
+   *
+   * Builder exposes this as a server action:
+   * ```ts
+   * "use server";
+   * export const approvePendingToolAction = oliver.approvePendingTool;
+   * ```
+   *
+   * Available only when `db` was passed to createAgent.
+   */
+  approvePendingTool(
+    input: ApprovePendingToolInput,
+    ctxOverride?: Partial<TContextExt>,
+  ): Promise<ServerActionResult<unknown>>;
+
+  /**
+   * Reject a pending tool. The tool never runs; status flips to 'rejected'.
+   *
+   * Available only when `db` was passed to createAgent.
+   */
+  rejectPendingTool(
+    input: RejectPendingToolInput,
+    ctxOverride?: Partial<TContextExt>,
+  ): Promise<ServerActionResult<{ rejected: true }>>;
+
+  /**
+   * List active (unexpired, still-pending) approval cards for an org.
+   * Empty array when Oliver wasn't configured with `db`.
+   *
+   * UI calls this to render the approval queue.
+   */
+  listPendingTools(orgId: string): Promise<PendingToolRow[]>;
+
+  /**
    * Internal: resolve context for a server action call. Exposed so
    * channel adapters can invoke the builder-provided resolver.
    * Not intended for direct use by builders.
@@ -142,6 +185,9 @@ export interface Agent<TContextExt> {
 
   /** Internal: audit logger. No-op if no db configured. */
   _audit?: AuditLogger;
+
+  /** Internal: HITL pending-tool store. Undefined when no db configured. */
+  _pending?: PendingToolStore;
 }
 
 /**
@@ -165,6 +211,7 @@ export function createAgent<TContextExt = Record<string, never>>(
   const audit = config.db
     ? new AuditLogger(config.db, config.onAuditFailure)
     : undefined;
+  const pending = config.db ? new PendingToolStore(config.db) : undefined;
 
   const agent: Agent<TContextExt> = {
     tools: config.tools,
@@ -180,9 +227,20 @@ export function createAgent<TContextExt = Record<string, never>>(
     assembleSession(input) {
       return assembleSession(agent, input);
     },
+    approvePendingTool(input, ctxOverride) {
+      return approvePendingToolImpl(agent, input, ctxOverride);
+    },
+    rejectPendingTool(input, ctxOverride) {
+      return rejectPendingToolImpl(agent, input, ctxOverride);
+    },
+    async listPendingTools(orgId) {
+      if (!pending) return [];
+      return pending.listActive(orgId);
+    },
     _resolveServerActionContext: config.resolveServerActionContext,
     _instructions: config.instructions,
     _audit: audit,
+    _pending: pending,
   };
 
   return agent;

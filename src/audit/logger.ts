@@ -16,23 +16,13 @@
  * back — losing business state to save audit state would be worse.
  */
 
-import { randomUUID } from "node:crypto";
 import { auditLog } from "../db/schema";
 import { generateId } from "../db/ids";
+import type { DrizzleDbLike } from "../db/types";
 import type { AuditEvent, OnAuditFailure } from "./types";
 
-/**
- * Minimal interface the audit logger needs from the builder's db handle.
- * Matches what drizzle-orm's `database` / `transactionDb` expose. Defined
- * structurally so Oliver doesn't need @repo/database as a direct dep.
- */
-export interface DrizzleDbLike {
-  // biome-ignore lint/suspicious/noExplicitAny: narrow structural typing
-  insert: (table: any) => {
-    // biome-ignore lint/suspicious/noExplicitAny:
-    values: (values: any) => Promise<unknown> | unknown;
-  };
-}
+// Re-exported for backwards compatibility (was defined here in Phase 4a).
+export type { DrizzleDbLike };
 
 const defaultOnAuditFailure: OnAuditFailure = (event, cause) => {
   console.error(
