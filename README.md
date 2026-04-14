@@ -28,7 +28,7 @@ Two paths to the same end-state. Pick what fits your workflow.
 
 ### Option A — AI coding agent (~2 min)
 
-If you already work with Claude Code, Codex, Cursor, or Cline, tell your agent:
+If you already work with Claude Code, Codex, or Cursor, tell your agent:
 
 > "Install Oliver in this project — follow the instructions at https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
 
@@ -430,7 +430,7 @@ Dois caminhos pro mesmo end-state. Escolhe o que combina com seu workflow.
 
 ### Opção A — Coding agent (~2 min)
 
-Se você já trabalha com Claude Code, Codex, Cursor ou Cline, fala pro seu agent:
+Se você já trabalha com Claude Code, Codex ou Cursor, fala pro seu agent:
 
 > "Instala o Oliver nesse projeto — segue as instruções em https://raw.githubusercontent.com/caio-overmind-ventures/oliver-harness-saas/main/INSTALL.md"
 

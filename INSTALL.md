@@ -1,6 +1,6 @@
 # Install Oliver in this project
 
-> **For LLM coding agents** (Claude Code, Codex, Cursor, Cline, etc.) to read and execute.
+> **For LLM coding agents** (Claude Code, Codex, Cursor, etc.) to read and execute.
 > Human readers should follow [README.md → Manual install](./README.md#manual-install).
 
 You are installing `oliver-agent` into the user's existing Next.js + Drizzle + Postgres SaaS. Execute the steps below in order. **Do not skip steps. Do not improvise file paths.** If a verification fails, STOP and tell the user.
