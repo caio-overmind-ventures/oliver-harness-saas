@@ -14,8 +14,17 @@ export type { ToolContext, ToolContextBase } from "./core/context";
 export { ToolError, wrapError } from "./core/errors";
 export type { ToolErrorCode } from "./core/errors";
 
-// Gateway, context assembly, approval, audit — exported as they're built
-// (Phase 2+ of implementation brief)
+// Gateway
+export { createAgent } from "./gateway/createAgent";
+export type { Agent, AgentConfig } from "./gateway/createAgent";
+export type {
+  ServerActionFn,
+  ServerActionResult,
+} from "./gateway/serverAction";
+export type { AgentToolsConfig } from "./gateway/agentTools";
+
+// Context assembly, approval, audit — exported as they're built
+// (Phase 3+ of implementation brief)
 
 // Database schema (builder includes in their Drizzle config)
 export {
