@@ -1,6 +1,6 @@
 {
   "name": "oliver-agent",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "Opinionated agent harness for Next.js + Drizzle + Postgres SaaS. One tool → Next.js server action + Vercel AI SDK tool. HITL, audit, precondition, concurrency built in.",
   "repository": {
@@ -24,14 +24,32 @@
     "mcp"
   ],
   "license": "MIT",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "INSTALL.md",
+    "ROADMAP.md",
+    "LICENSE"
+  ],
   "scripts": {
+    "build": "tsup",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo:mutex": "tsx scripts/demo-mutex.ts"
+    "demo:mutex": "tsx scripts/demo-mutex.ts",
+    "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {
     "ai": "^6.0.144",
@@ -41,6 +59,7 @@
   },
   "devDependencies": {
     "@types/node": "25.3.5",
+    "tsup": "^8.5.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
