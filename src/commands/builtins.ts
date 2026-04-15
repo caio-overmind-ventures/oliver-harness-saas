@@ -22,12 +22,12 @@ export function createBuiltinCommands<TContextExt>(
       name: "help",
       description: "List available slash commands.",
       handler: () => {
-        const lines = ["Available commands:"];
-        // Defer reading commands until handler-time so user-defined and
-        // built-in commands all appear (registry is fully assembled by
-        // the time anyone could type /help).
+        // Markdown formatting — chat UIs render this; plain `\n` collapses
+        // to spaces because markdown treats single newlines as soft-wraps.
+        // List items with `-` keep each entry on its own visual line.
+        const lines = ["**Available commands:**", ""];
         for (const cmd of agent._commands ?? []) {
-          lines.push(`  /${cmd.name} — ${cmd.description}`);
+          lines.push(`- \`/${cmd.name}\` — ${cmd.description}`);
         }
         return lines.join("\n");
       },
@@ -38,10 +38,10 @@ export function createBuiltinCommands<TContextExt>(
       description: "List the tools this agent can call.",
       handler: () => {
         if (agent.tools.length === 0) return "No tools registered.";
-        const lines = [`Available tools (${agent.tools.length}):`];
+        const lines = [`**Available tools (${agent.tools.length}):**`, ""];
         for (const tool of agent.tools) {
-          const hitl = tool.requiresApproval ? " [HITL]" : "";
-          lines.push(`  • ${tool.name}${hitl} — ${tool.description}`);
+          const hitl = tool.requiresApproval ? " _(HITL)_" : "";
+          lines.push(`- **${tool.name}**${hitl} — ${tool.description}`);
         }
         return lines.join("\n");
       },
@@ -57,13 +57,13 @@ export function createBuiltinCommands<TContextExt>(
         const rows = await agent._pending.listActive(ctx.orgId);
         if (rows.length === 0) return "No approvals pending.";
 
-        const lines = [`${rows.length} pending approval(s):`];
+        const lines = [`**${rows.length} pending approval(s):**`, ""];
         for (const row of rows) {
           const age = Math.round(
             (Date.now() - new Date(row.createdAt).getTime()) / 1000,
           );
           lines.push(
-            `  • ${row.toolName} (id: ${row.id}, ${age}s ago)`,
+            `- **${row.toolName}** — id \`${row.id}\` (${age}s ago)`,
           );
         }
         return lines.join("\n");

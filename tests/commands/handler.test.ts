@@ -67,7 +67,7 @@ describe("handleSlashCommand — built-ins", () => {
     const result = await agent.handleSlashCommand([userMessage("/tools")], baseCtx);
     expect(result).toContain("cheap");
     expect(result).toContain("sensitive");
-    expect(result).toContain("[HITL]");
+    expect(result).toContain("(HITL)");
     expect(result).toContain("Cheap read.");
   });
 
@@ -178,7 +178,8 @@ describe("handleSlashCommand — dispatch behavior", () => {
       [userMessage("/broken")],
       baseCtx,
     );
-    expect(result).toContain("/broken failed");
+    expect(result).toContain("`/broken`");
+    expect(result).toContain("failed");
     expect(result).toContain("intentional");
   });
 

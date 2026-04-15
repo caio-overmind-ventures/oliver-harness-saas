@@ -210,6 +210,14 @@ export interface Agent<TContextExt> {
   respondWithText(text: string): Response;
 
   /**
+   * Read-only list of every slash command (built-in + user-supplied) the
+   * agent recognises. Useful for surfacing in chat UI autocomplete:
+   * expose via a route like `GET /api/oliver/commands`, fetch from the
+   * client when the user types `/`, render a dropdown.
+   */
+  listSlashCommands(): ReadonlyArray<{ name: string; description: string }>;
+
+  /**
    * Internal: resolve context for a server action call. Exposed so
    * channel adapters can invoke the builder-provided resolver.
    * Not intended for direct use by builders.
@@ -287,6 +295,12 @@ export function createAgent<TContextExt = Record<string, unknown>>(
     },
     respondWithText(text) {
       return respondWithText(text);
+    },
+    listSlashCommands() {
+      return (agent._commands ?? []).map((c) => ({
+        name: c.name,
+        description: c.description,
+      }));
     },
     _resolveServerActionContext: config.resolveServerActionContext,
     _instructions: config.instructions,

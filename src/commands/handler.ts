@@ -74,13 +74,13 @@ export async function dispatchSlashCommand<TContextExt>(
 
   const command = input.commands.find((c) => c.name === parsed.name);
   if (!command) {
-    return `Unknown command: /${parsed.name}\n\nType /help to see available commands.`;
+    return `Unknown command: \`/${parsed.name}\`\n\nType \`/help\` to see available commands.`;
   }
 
   try {
     return await command.handler({ args: parsed.args, ctx: input.ctx });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return `Command /${parsed.name} failed: ${message}`;
+    return `Command \`/${parsed.name}\` failed: ${message}`;
   }
 }
